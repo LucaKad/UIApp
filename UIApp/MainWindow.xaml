@@ -1,0 +1,385 @@
+﻿<Window x:Class="NlpUiDemo.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Natural Language Processing (NLP) Explorer"
+        Height="700" Width="1100"
+        Background="{DynamicResource WindowBackgroundBrush}">
+    <Window.Resources>
+        <!-- Accent and background brushes (will be changed from code) -->
+        <SolidColorBrush x:Key="AccentBrush" Color="#FF2D89EF"/>
+        <SolidColorBrush x:Key="WindowBackgroundBrush" Color="LightGray"/>
+        <SolidColorBrush x:Key="WindowTextBrush" Color="Black"/>
+        <SolidColorBrush x:Key="HeaderBackgroundBrush" Color="#FF2D89EF"/>
+        <SolidColorBrush x:Key="FooterBackgroundBrush" Color="LightSkyBlue"/>
+    </Window.Resources>
+
+    <DockPanel LastChildFill="True">
+
+        <!-- CUSTOM MENU BAR -->
+        <Border DockPanel.Dock="Top" 
+                Background="{DynamicResource WindowBackgroundBrush}"
+                BorderBrush="{DynamicResource AccentBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="5,3">
+            <StackPanel x:Name="CustomMenuBar" Orientation="Horizontal">
+                <!-- File Menu -->
+                <Button x:Name="FileMenuButton"
+                        Content="File"
+                        Padding="8,4"
+                        Margin="2,0"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Foreground="{DynamicResource WindowTextBrush}"
+                        Click="FileMenuButton_Click"
+                        MouseEnter="MenuButton_MouseEnter"
+                        MouseLeave="MenuButton_MouseLeave"/>
+                
+                <!-- View Menu -->
+                <Button x:Name="ViewMenuButton"
+                        Content="View"
+                        Padding="8,4"
+                        Margin="2,0"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Foreground="{DynamicResource WindowTextBrush}"
+                        Click="ViewMenuButton_Click"
+                        MouseEnter="MenuButton_MouseEnter"
+                        MouseLeave="MenuButton_MouseLeave"/>
+                
+                <!-- Help Menu -->
+                <Button x:Name="HelpMenuButton"
+                        Content="Help"
+                        Padding="8,4"
+                        Margin="2,0"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Foreground="{DynamicResource WindowTextBrush}"
+                        Click="HelpMenuButton_Click"
+                        MouseEnter="MenuButton_MouseEnter"
+                        MouseLeave="MenuButton_MouseLeave"/>
+            </StackPanel>
+        </Border>
+        
+        <!-- Menu Popups -->
+        <Popup x:Name="FileMenuPopup"
+               Placement="Bottom"
+               PlacementTarget="{Binding ElementName=FileMenuButton}"
+               StaysOpen="False"
+               PopupAnimation="Fade">
+            <Border Background="{DynamicResource WindowBackgroundBrush}"
+                    BorderBrush="{DynamicResource AccentBrush}"
+                    BorderThickness="1"
+                    Padding="0">
+                <ScrollViewer MaxHeight="300"
+                               VerticalScrollBarVisibility="Auto"
+                               HorizontalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <Button Content="Exit"
+                                Padding="20,6,40,6"
+                                HorizontalContentAlignment="Left"
+                                HorizontalAlignment="Stretch"
+                                MinWidth="120"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Foreground="{DynamicResource WindowTextBrush}"
+                                Click="ExitMenuItem_Click"
+                                MouseEnter="MenuItem_MouseEnter"
+                                MouseLeave="MenuItem_MouseLeave"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Popup>
+        
+        <Popup x:Name="ViewMenuPopup"
+               Placement="Bottom"
+               PlacementTarget="{Binding ElementName=ViewMenuButton}"
+               StaysOpen="False"
+               PopupAnimation="Fade">
+            <Border Background="{DynamicResource WindowBackgroundBrush}"
+                    BorderBrush="{DynamicResource AccentBrush}"
+                    BorderThickness="1"
+                    Padding="0">
+                <ScrollViewer MaxHeight="300"
+                               VerticalScrollBarVisibility="Auto"
+                               HorizontalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <Button Content="Reset settings"
+                                Padding="20,6,40,6"
+                                HorizontalContentAlignment="Left"
+                                HorizontalAlignment="Stretch"
+                                MinWidth="120"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Foreground="{DynamicResource WindowTextBrush}"
+                                Click="ResetSettingsMenuItem_Click"
+                                MouseEnter="MenuItem_MouseEnter"
+                                MouseLeave="MenuItem_MouseLeave"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Popup>
+        
+        <Popup x:Name="HelpMenuPopup"
+               Placement="Bottom"
+               PlacementTarget="{Binding ElementName=HelpMenuButton}"
+               StaysOpen="False"
+               PopupAnimation="Fade">
+            <Border Background="{DynamicResource WindowBackgroundBrush}"
+                    BorderBrush="{DynamicResource AccentBrush}"
+                    BorderThickness="1"
+                    Padding="0">
+                <ScrollViewer MaxHeight="300"
+                               VerticalScrollBarVisibility="Auto"
+                               HorizontalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <Button Content="About NLP Explorer"
+                                Padding="20,6,40,6"
+                                HorizontalContentAlignment="Left"
+                                HorizontalAlignment="Stretch"
+                                MinWidth="120"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Foreground="{DynamicResource WindowTextBrush}"
+                                Click="AboutMenuItem_Click"
+                                MouseEnter="MenuItem_MouseEnter"
+                                MouseLeave="MenuItem_MouseLeave"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Popup>
+
+        <!-- HEADER -->
+        <Border DockPanel.Dock="Top" 
+                Background="{DynamicResource HeaderBackgroundBrush}" 
+                Padding="10">
+            <StackPanel Orientation="Vertical">
+                <TextBlock Text="Natural Language Processing (NLP)"
+                           FontSize="24"
+                           FontWeight="Bold"
+                           Foreground="White"/>
+                <TextBlock Text="NLP studies how computers understand, interpret and generate human language."
+                           Margin="0,5,0,0"
+                           Foreground="White"/>
+            </StackPanel>
+        </Border>
+
+        <!-- FOOTER -->
+        <Border DockPanel.Dock="Bottom" 
+                Background="{DynamicResource FooterBackgroundBrush}" 
+                Padding="5">
+        </Border>
+
+        <!-- RIGHT SETTINGS PANEL (UI ADJUSTABILITY) -->
+        <Border DockPanel.Dock="Right"
+                Background="{DynamicResource FooterBackgroundBrush}"
+                Padding="10"
+                Width="220">
+            <StackPanel>
+                <TextBlock Text="UI Settings"
+                           FontWeight="Bold"
+                           FontSize="14"/>
+
+                <TextBlock Text="Font size:"
+                           Margin="0,10,0,0"/>
+                <Slider x:Name="FontSizeSlider"
+                        Minimum="10" Maximum="24"
+                        Value="14"
+                        TickFrequency="2"
+                        IsSnapToTickEnabled="True"
+                        ValueChanged="FontSizeSlider_ValueChanged"/>
+
+                <TextBlock Text="Quick font control:"
+           Margin="0,12,0,0"/>
+                <StackPanel Orientation="Horizontal">
+                    <Button x:Name="DecreaseFontButton"
+            Width="80"
+            Click="DecreaseFontButton_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="🔎" Margin="0,0,3,0"/>
+                            <TextBlock Text="A-"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="IncreaseFontButton"
+        Width="80"
+        Margin="0,0,5,0"
+        Click="IncreaseFontButton_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="🔍" Margin="0,0,3,0"/>
+                            <TextBlock Text="A+"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+
+                <TextBlock Text="Accent color:"
+                           Margin="0,10,0,0"/>
+                <ComboBox x:Name="AccentColorComboBox"
+                          SelectionChanged="AccentColorComboBox_SelectionChanged">
+                    <ComboBoxItem Content="Blue" IsSelected="True"/>
+                    <ComboBoxItem Content="Green"/>
+                    <ComboBoxItem Content="Purple"/>
+                    <ComboBoxItem Content="Orange"/>
+                </ComboBox>
+
+                <TextBlock Text="Theme:"
+                           Margin="0,10,0,0"/>
+                <Button x:Name="ToggleThemeButton"
+                        Margin="0,2,0,0"
+                        Click="ToggleThemeButton_Click">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="🌓" Margin="0,0,5,0"/>
+                        <TextBlock Text="Toggle Light/Dark"/>
+                    </StackPanel>
+                </Button>
+
+                <TextBlock Text="Navigation:"
+                           Margin="0,12,0,0"/>
+                <Button x:Name="GoToOverviewButton"
+                        Margin="0,2,0,0"
+                        Click="GoToOverviewButton_Click">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="🏠" Margin="0,0,5,0"/>
+                        <TextBlock Text="Go to Overview"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Border>
+
+        <!-- MAIN CONTENT (TAB CONTROL = MULTIPLE FRAMES) -->
+        <Grid Margin="5">
+            <TabControl x:Name="MainTabControl" Background="{DynamicResource WindowBackgroundBrush}">
+                <!-- TAB 1: OVERVIEW -->
+                <TabItem Header="Overview">
+                    <ScrollViewer>
+                        <StackPanel Margin="10" Background="{DynamicResource WindowBackgroundBrush}">
+                            <TextBlock Text="What is NLP?"
+                                       FontSize="18"
+                                       FontWeight="Bold"
+                                       Margin="0,0,0,5"
+                                       Foreground="{DynamicResource WindowTextBrush}"/>
+                            <TextBlock TextWrapping="Wrap"
+                                       Margin="0,0,0,10"
+                                       Foreground="{DynamicResource WindowTextBrush}">
+Natural Language Processing (NLP) is a field of Artificial Intelligence that combines linguistics, computer science, and machine learning to help computers work with human language. It is used in chatbots, machine translation, sentiment analysis, text summarization and more.
+                            </TextBlock>
+
+                            <TextBlock Text="Typical NLP pipeline:"
+                                       FontWeight="Bold"
+                                       Margin="0,10,0,5"
+                                       Foreground="{DynamicResource WindowTextBrush}"/>
+                            <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource WindowTextBrush}">
+1. Data Acquisition
+2. Text Preprocessing
+3. Feature Engineering
+4. Modelling and Evaluation
+5. Deployment
+                            </TextBlock>
+
+                            <Image Height="280"
+                                   Margin="0,15,0,5"
+                                   Stretch="Uniform"
+                                   Source="Images/nlp_pipeline.png"
+                                   ToolTip="Example of an NLP processing pipeline (placeholder image)"/>
+
+                            
+                            
+                            
+                            
+                            
+                            
+                            
+                            <Image Height="280"
+                                   Margin="0,5,0,0"
+                                   Stretch="Uniform"
+                                   Source="Images/word_embedding.png"
+                                   ToolTip="A simple illustration of word embeddings in a vector space (placeholder image)"/>
+
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+
+                <TabItem Header="Tokenization">
+                    <ScrollViewer>
+                        <StackPanel Margin="10" Background="{DynamicResource WindowBackgroundBrush}">
+                            <TextBlock Text="Tokenization and Representation"
+                                       FontSize="18"
+                                       FontWeight="Bold"
+                                       Margin="0,0,0,5"
+                                       Foreground="{DynamicResource WindowTextBrush}"/>
+                            <TextBlock TextWrapping="Wrap"
+                                       Margin="0,0,0,10"
+                                       Foreground="{DynamicResource WindowTextBrush}">
+Tokenization splits text into units called tokens. They can be words, subwords, or characters. Modern NLP often uses subword tokenization (e.g., Byte Pair Encoding, WordPiece) to handle rare words and different languages effectively.
+                            </TextBlock>
+
+                            <TextBlock Text="Common text representations:"
+                                       FontWeight="Bold"
+                                       Margin="0,10,0,5"
+                                       Foreground="{DynamicResource WindowTextBrush}"/>
+                            <StackPanel>
+                                <ListBoxItem Foreground="{DynamicResource WindowTextBrush}">Bag-of-Words (frequency of each word)</ListBoxItem>
+                                <ListBoxItem Foreground="{DynamicResource WindowTextBrush}">TF-IDF (frequency weighted by importance)</ListBoxItem>
+                                <ListBoxItem Foreground="{DynamicResource WindowTextBrush}">Word embeddings (Word2Vec, GloVe, fastText)</ListBoxItem>
+                                <ListBoxItem Foreground="{DynamicResource WindowTextBrush}">Contextual embeddings (BERT, GPT-like models)</ListBoxItem>
+                            </StackPanel>
+
+                            <TextBlock Text="Example: simple tokenization"
+                                       FontWeight="Bold"
+                                       Margin="0,10,0,5"
+                                       Foreground="{DynamicResource WindowTextBrush}"/>
+                            <Border BorderBrush="Gray" BorderThickness="1" Padding="8">
+                                <StackPanel>
+                                    <TextBlock Text="Input: &quot;NLP helps computers understand language.&quot;"
+                                               TextWrapping="Wrap"
+                                               Foreground="{DynamicResource WindowTextBrush}"/>
+                                    <TextBlock Text="Tokens: [NLP] [helps] [computers] [understand] [language]"
+                                               Margin="0,5,0,0"
+                                               TextWrapping="Wrap"
+                                               Foreground="{DynamicResource WindowTextBrush}"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+
+                <!-- TAB 3: APPLICATIONS -->
+                <TabItem Header="Applications">
+                    <ScrollViewer>
+                        <StackPanel Margin="10" Background="{DynamicResource WindowBackgroundBrush}">
+                            <TextBlock Text="NLP Applications"
+                                       FontSize="18"
+                                       FontWeight="Bold"
+                                       Margin="0,0,0,5"
+                                       Foreground="{DynamicResource WindowTextBrush}"/>
+                            <TextBlock TextWrapping="Wrap"
+                                       Margin="0,0,0,10"
+                                       Foreground="{DynamicResource WindowTextBrush}">
+NLP is everywhere in modern software. Many everyday tools rely on it to analyze text, answer questions, and communicate with users in a more natural way.
+                            </TextBlock>
+
+                            <TextBlock Text="Examples:" FontWeight="Bold" Foreground="{DynamicResource WindowTextBrush}"/>
+                            <ListBox Margin="0,5,0,10" Background="{DynamicResource WindowBackgroundBrush}">
+                                <ListBoxItem Foreground="{DynamicResource WindowTextBrush}">Machine translation (e.g., translating documents)</ListBoxItem>
+                                <ListBoxItem Foreground="{DynamicResource WindowTextBrush}">Chatbots and virtual assistants</ListBoxItem>
+                                <ListBoxItem Foreground="{DynamicResource WindowTextBrush}">Sentiment analysis of reviews / social media</ListBoxItem>
+                                <ListBoxItem Foreground="{DynamicResource WindowTextBrush}">Text summarization and question answering</ListBoxItem>
+                                <ListBoxItem Foreground="{DynamicResource WindowTextBrush}">Speech recognition and speech-to-text</ListBoxItem>
+                            </ListBox>
+
+                            <Image Height="280"
+                                   Margin="0,5,0,0"
+                                   Stretch="Uniform"
+                                   Source="Images/nlp_applications.png"
+                                   ToolTip="Illustration of some NLP application areas (placeholder image)"/>
+
+                            <TextBlock TextWrapping="Wrap"
+                                       Margin="0,15,0,0"
+                                       Foreground="{DynamicResource WindowTextBrush}">
+NLP continues to evolve rapidly with the rise of large language models that can generate code, stories, and detailed explanations, making language interfaces more natural and powerful.
+                            </TextBlock>
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+            </TabControl>
+        </Grid>
+    </DockPanel>
+</Window>
