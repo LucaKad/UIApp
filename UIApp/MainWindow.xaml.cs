@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
@@ -17,6 +19,10 @@ namespace NlpUiDemo
         private bool _isDarkTheme = false;
         private readonly HttpClient _httpClient;
         private string _currentArticleTitle = string.Empty;
+        private string _currentArticleContent = string.Empty;
+        private List<string> _currentTokens = new List<string>();
+        private ObservableCollection<SavedArticle> _savedArticles = new ObservableCollection<SavedArticle>();
+        private readonly string _articlesDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "NLPExplorer", "Articles");
 
         public MainWindow()
         {
@@ -26,8 +32,23 @@ namespace NlpUiDemo
             _httpClient = new HttpClient();
             _httpClient.DefaultRequestHeaders.Add("User-Agent", "NLP-Explorer/1.0 (Educational App)");
 
+            // Initialize articles directory
+            if (!Directory.Exists(_articlesDirectory))
+            {
+                Directory.CreateDirectory(_articlesDirectory);
+            }
+
+            // Load saved articles
+            LoadSavedArticles();
+
             // Initialize base font size for window
             this.FontSize = FontSizeSlider.Value;
+            
+            // Set DataGrid items source after window is loaded
+            this.Loaded += (s, e) =>
+            {
+                SavedArticlesGrid.ItemsSource = _savedArticles;
+            };
             
             // Close popups when clicking outside (but not on menu buttons)
             this.MouseDown += (s, e) =>
@@ -408,12 +429,16 @@ namespace NlpUiDemo
                 }
 
                 // Display article content
+                _currentArticleContent = articleText;
                 ArticleContentTextBlock.Text = $"Title: {_currentArticleTitle}\n\n{articleText}";
 
                 // Tokenize the article
-                var tokens = TokenizeText(articleText);
-                TokenizedTextBlock.Text = $"Total tokens: {tokens.Count}\n\n" +
-                    $"Tokens (first 500):\n{string.Join(" | ", tokens.Take(500))}";
+                _currentTokens = TokenizeText(articleText);
+                TokenizedTextBlock.Text = $"Total tokens: {_currentTokens.Count}\n\n" +
+                    $"Tokens (first 500):\n{string.Join(" | ", _currentTokens.Take(500))}";
+
+                // Save article to file
+                await SaveArticleToFile(_currentArticleTitle, articleText, _currentTokens);
             }
             catch (Exception ex)
             {
@@ -458,6 +483,187 @@ namespace NlpUiDemo
 
             return tokens;
         }
+
+        private async Task SaveArticleToFile(string title, string content, List<string> tokens)
+        {
+            try
+            {
+                string safeFileName = string.Join("_", title.Split(Path.GetInvalidFileNameChars()));
+                string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                string fileName = $"{safeFileName}_{timestamp}";
+                string articlePath = Path.Combine(_articlesDirectory, $"{fileName}.txt");
+                string tokensPath = Path.Combine(_articlesDirectory, $"{fileName}_tokens.json");
+                string metadataPath = Path.Combine(_articlesDirectory, $"{fileName}_metadata.json");
+
+                // Save article content
+                await File.WriteAllTextAsync(articlePath, content);
+
+                // Save tokens as JSON
+                var tokensJson = JsonSerializer.Serialize(tokens, new JsonSerializerOptions { WriteIndented = true });
+                await File.WriteAllTextAsync(tokensPath, tokensJson);
+
+                // Save metadata
+                var metadata = new ArticleMetadata
+                {
+                    Title = title,
+                    ArticlePath = articlePath,
+                    TokensPath = tokensPath,
+                    TokenCount = tokens.Count,
+                    SavedDate = DateTime.Now,
+                    ContentLength = content.Length
+                };
+                var metadataJson = JsonSerializer.Serialize(metadata, new JsonSerializerOptions { WriteIndented = true });
+                await File.WriteAllTextAsync(metadataPath, metadataJson);
+
+                // Add to collection
+                var savedArticle = new SavedArticle
+                {
+                    Title = title,
+                    FileName = fileName,
+                    TokenCount = tokens.Count,
+                    SavedDate = DateTime.Now,
+                    ArticlePath = articlePath,
+                    TokensPath = tokensPath,
+                    MetadataPath = metadataPath
+                };
+
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    _savedArticles.Insert(0, savedArticle);
+                });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to save article: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        private void LoadSavedArticles()
+        {
+            try
+            {
+                if (!Directory.Exists(_articlesDirectory))
+                    return;
+
+                var metadataFiles = Directory.GetFiles(_articlesDirectory, "*_metadata.json");
+                var articles = new List<SavedArticle>();
+
+                foreach (var metadataFile in metadataFiles)
+                {
+                    try
+                    {
+                        var json = File.ReadAllText(metadataFile);
+                        var metadata = JsonSerializer.Deserialize<ArticleMetadata>(json);
+                        
+                        if (metadata != null && File.Exists(metadata.ArticlePath))
+                        {
+                            var fileName = Path.GetFileNameWithoutExtension(metadataFile).Replace("_metadata", "");
+                            articles.Add(new SavedArticle
+                            {
+                                Title = metadata.Title,
+                                FileName = fileName,
+                                TokenCount = metadata.TokenCount,
+                                SavedDate = metadata.SavedDate,
+                                ArticlePath = metadata.ArticlePath,
+                                TokensPath = metadata.TokensPath,
+                                MetadataPath = metadataFile
+                            });
+                        }
+                    }
+                    catch
+                    {
+                        // Skip invalid metadata files
+                    }
+                }
+
+                articles = articles.OrderByDescending(a => a.SavedDate).ToList();
+                
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    _savedArticles.Clear();
+                    foreach (var article in articles)
+                    {
+                        _savedArticles.Add(article);
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to load saved articles: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        private void SavedArticlesGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (SavedArticlesGrid.SelectedItem is SavedArticle selectedArticle)
+            {
+                ViewSavedArticleButton.IsEnabled = true;
+                DeleteSavedArticleButton.IsEnabled = true;
+            }
+            else
+            {
+                ViewSavedArticleButton.IsEnabled = false;
+                DeleteSavedArticleButton.IsEnabled = false;
+            }
+        }
+
+        private void ViewSavedArticleButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (SavedArticlesGrid.SelectedItem is SavedArticle selectedArticle)
+            {
+                try
+                {
+                    if (File.Exists(selectedArticle.ArticlePath))
+                    {
+                        var content = File.ReadAllText(selectedArticle.ArticlePath);
+                        var tokensJson = File.ReadAllText(selectedArticle.TokensPath);
+                        var tokens = JsonSerializer.Deserialize<List<string>>(tokensJson);
+
+                        MainTabControl.SelectedIndex = 3;
+                        ArticleContentTextBlock.Text = $"Title: {selectedArticle.Title}\n\n{content}";
+                        TokenizedTextBlock.Text = $"Total tokens: {tokens?.Count ?? 0}\n\n" +
+                            $"Tokens (first 500):\n{string.Join(" | ", tokens?.Take(500) ?? new List<string>())}";
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Failed to load article: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        private void DeleteSavedArticleButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (SavedArticlesGrid.SelectedItem is SavedArticle selectedArticle)
+            {
+                var result = MessageBox.Show($"Are you sure you want to delete '{selectedArticle.Title}'?", 
+                    "Confirm Delete", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    try
+                    {
+                        if (File.Exists(selectedArticle.ArticlePath))
+                            File.Delete(selectedArticle.ArticlePath);
+                        if (File.Exists(selectedArticle.TokensPath))
+                            File.Delete(selectedArticle.TokensPath);
+                        if (File.Exists(selectedArticle.MetadataPath))
+                            File.Delete(selectedArticle.MetadataPath);
+
+                        _savedArticles.Remove(selectedArticle);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Failed to delete article: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
+            }
+        }
+
+        private void RefreshSavedArticlesButton_Click(object sender, RoutedEventArgs e)
+        {
+            LoadSavedArticles();
+        }
     }
 
     // Helper class for Wikipedia search results
@@ -466,5 +672,26 @@ namespace NlpUiDemo
         public string Title { get; set; } = "";
         public string Snippet { get; set; } = "";
         public int PageId { get; set; }
+    }
+
+    public class SavedArticle
+    {
+        public string Title { get; set; } = "";
+        public string FileName { get; set; } = "";
+        public int TokenCount { get; set; }
+        public DateTime SavedDate { get; set; }
+        public string ArticlePath { get; set; } = "";
+        public string TokensPath { get; set; } = "";
+        public string MetadataPath { get; set; } = "";
+    }
+
+    public class ArticleMetadata
+    {
+        public string Title { get; set; } = "";
+        public string ArticlePath { get; set; } = "";
+        public string TokensPath { get; set; } = "";
+        public int TokenCount { get; set; }
+        public DateTime SavedDate { get; set; }
+        public int ContentLength { get; set; }
     }
 }
