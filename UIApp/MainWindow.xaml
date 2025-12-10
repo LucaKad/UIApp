@@ -379,6 +379,122 @@ NLP continues to evolve rapidly with the rise of large language models that can 
                         </StackPanel>
                     </ScrollViewer>
                 </TabItem>
+
+                <!-- TAB 4: WIKIPEDIA SEARCH -->
+                <TabItem Header="Wikipedia Search">
+                    <Grid Margin="10" Background="{DynamicResource WindowBackgroundBrush}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Search Section -->
+                        <StackPanel Grid.Row="0" Margin="0,0,0,10">
+                            <TextBlock Text="Search Wikipedia Articles"
+                                       FontSize="18"
+                                       FontWeight="Bold"
+                                       Margin="0,0,0,10"
+                                       Foreground="{DynamicResource WindowTextBrush}"/>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox x:Name="SearchTextBox"
+                                         Grid.Column="0"
+                                         Padding="8,4"
+                                         FontSize="14"
+                                         KeyDown="SearchTextBox_KeyDown"
+                                         Background="{DynamicResource WindowBackgroundBrush}"
+                                         Foreground="{DynamicResource WindowTextBrush}"/>
+                                <Button x:Name="SearchButton"
+                                        Grid.Column="1"
+                                        Content="Search"
+                                        Padding="15,4"
+                                        Margin="5,0,0,0"
+                                        Click="SearchButton_Click"
+                                        Background="{DynamicResource AccentBrush}"
+                                        Foreground="White"/>
+                            </Grid>
+                            <TextBlock x:Name="SearchStatusText"
+                                       Margin="0,5,0,0"
+                                       Foreground="{DynamicResource WindowTextBrush}"
+                                       TextWrapping="Wrap"/>
+                        </StackPanel>
+
+                        <!-- Results Section -->
+                        <StackPanel Grid.Row="1" Margin="0,0,0,10">
+                            <TextBlock Text="Search Results"
+                                       FontSize="16"
+                                       FontWeight="Bold"
+                                       Margin="0,0,0,5"
+                                       Foreground="{DynamicResource WindowTextBrush}"/>
+                            <ListBox x:Name="ResultsListBox"
+                                     Height="200"
+                                     SelectionChanged="ResultsListBox_SelectionChanged"
+                                     Background="{DynamicResource WindowBackgroundBrush}"
+                                     Foreground="{DynamicResource WindowTextBrush}">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Margin="5">
+                                            <TextBlock Text="{Binding Title}"
+                                                       FontWeight="Bold"
+                                                       Foreground="{DynamicResource WindowTextBrush}"/>
+                                            <TextBlock Text="{Binding Snippet}"
+                                                       TextWrapping="Wrap"
+                                                       Margin="0,2,0,0"
+                                                       Foreground="{DynamicResource WindowTextBrush}"
+                                                       FontSize="12"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                            <Button x:Name="DownloadButton"
+                                    Content="Download Selected Article"
+                                    Padding="10,5"
+                                    Margin="0,5,0,0"
+                                    Click="DownloadButton_Click"
+                                    IsEnabled="False"
+                                    Background="{DynamicResource AccentBrush}"
+                                    Foreground="White"/>
+                        </StackPanel>
+
+                        <!-- Article Content Section -->
+                        <StackPanel Grid.Row="2" Margin="0,0,0,10">
+                            <TextBlock Text="Article Content"
+                                       FontSize="16"
+                                       FontWeight="Bold"
+                                       Margin="0,0,0,5"
+                                       Foreground="{DynamicResource WindowTextBrush}"/>
+                            <ScrollViewer Height="200"
+                                          VerticalScrollBarVisibility="Auto"
+                                          HorizontalScrollBarVisibility="Auto">
+                                <TextBlock x:Name="ArticleContentTextBlock"
+                                           TextWrapping="Wrap"
+                                           Foreground="{DynamicResource WindowTextBrush}"
+                                           Text="No article downloaded yet."/>
+                            </ScrollViewer>
+                        </StackPanel>
+
+                        <!-- Tokenization Section -->
+                        <StackPanel Grid.Row="3">
+                            <TextBlock Text="Tokenized Text"
+                                       FontSize="16"
+                                       FontWeight="Bold"
+                                       Margin="0,0,0,5"
+                                       Foreground="{DynamicResource WindowTextBrush}"/>
+                            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                          HorizontalScrollBarVisibility="Auto">
+                                <TextBlock x:Name="TokenizedTextBlock"
+                                           TextWrapping="Wrap"
+                                           Foreground="{DynamicResource WindowTextBrush}"
+                                           Text="Tokens will appear here after downloading and processing an article."/>
+                            </ScrollViewer>
+                        </StackPanel>
+                    </Grid>
+                </TabItem>
             </TabControl>
         </Grid>
     </DockPanel>

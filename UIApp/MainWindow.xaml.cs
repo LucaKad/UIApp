@@ -1,6 +1,13 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http;
+using System.Text.Json;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 
 namespace NlpUiDemo
@@ -8,10 +15,16 @@ namespace NlpUiDemo
     public partial class MainWindow : Window
     {
         private bool _isDarkTheme = false;
+        private readonly HttpClient _httpClient;
+        private string _currentArticleTitle = string.Empty;
 
         public MainWindow()
         {
             InitializeComponent();
+
+            // Initialize HttpClient for Wikipedia API calls
+            _httpClient = new HttpClient();
+            _httpClient.DefaultRequestHeaders.Add("User-Agent", "NLP-Explorer/1.0 (Educational App)");
 
             // Initialize base font size for window
             this.FontSize = FontSizeSlider.Value;
@@ -39,6 +52,8 @@ namespace NlpUiDemo
                 if (e.Key == System.Windows.Input.Key.Escape)
                     CloseAllPopups();
             };
+            
+            this.Closed += (s, e) => _httpClient?.Dispose();
         }
 
         private bool IsDescendantOf(DependencyObject ancestor, DependencyObject descendant)
@@ -277,5 +292,179 @@ namespace NlpUiDemo
                 MainTabControl.SelectedIndex = 0;
             }
         }
+
+        // -------- WIKIPEDIA SEARCH FUNCTIONALITY --------
+
+        private async void SearchButton_Click(object sender, RoutedEventArgs e)
+        {
+            await PerformSearch();
+        }
+
+        private async void SearchTextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                await PerformSearch();
+            }
+        }
+
+        private async Task PerformSearch()
+        {
+            string searchQuery = SearchTextBox.Text.Trim();
+            if (string.IsNullOrWhiteSpace(searchQuery))
+            {
+                SearchStatusText.Text = "Please enter a search term.";
+                return;
+            }
+
+            SearchStatusText.Text = "Searching...";
+            SearchButton.IsEnabled = false;
+            ResultsListBox.ItemsSource = null;
+
+            try
+            {
+                // Wikipedia API search endpoint
+                string url = $"https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch={Uri.EscapeDataString(searchQuery)}&format=json&srlimit=10";
+                
+                var response = await _httpClient.GetStringAsync(url);
+                var jsonDoc = JsonDocument.Parse(response);
+
+                var results = new List<WikipediaSearchResult>();
+                if (jsonDoc.RootElement.TryGetProperty("query", out var query) &&
+                    query.TryGetProperty("search", out var search))
+                {
+                    foreach (var item in search.EnumerateArray())
+                    {
+                        results.Add(new WikipediaSearchResult
+                        {
+                            Title = item.GetProperty("title").GetString() ?? "",
+                            Snippet = item.GetProperty("snippet").GetString() ?? "",
+                            PageId = item.GetProperty("pageid").GetInt32()
+                        });
+                    }
+                }
+
+                ResultsListBox.ItemsSource = results;
+                SearchStatusText.Text = results.Count > 0 
+                    ? $"Found {results.Count} result(s)." 
+                    : "No results found.";
+            }
+            catch (Exception ex)
+            {
+                SearchStatusText.Text = $"Error: {ex.Message}";
+                MessageBox.Show($"Failed to search Wikipedia: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                SearchButton.IsEnabled = true;
+            }
+        }
+
+        private void ResultsListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            DownloadButton.IsEnabled = ResultsListBox.SelectedItem != null;
+        }
+
+        private async void DownloadButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (ResultsListBox.SelectedItem is not WikipediaSearchResult selectedResult)
+            {
+                return;
+            }
+
+            DownloadButton.IsEnabled = false;
+            DownloadButton.Content = "Downloading...";
+            ArticleContentTextBlock.Text = "Downloading article...";
+            TokenizedTextBlock.Text = "Waiting for article download...";
+
+            try
+            {
+                // Get article content from Wikipedia API
+                string url = $"https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro=false&explaintext=true&pageids={selectedResult.PageId}&format=json";
+                
+                var response = await _httpClient.GetStringAsync(url);
+                var jsonDoc = JsonDocument.Parse(response);
+
+                string articleText = "";
+                if (jsonDoc.RootElement.TryGetProperty("query", out var query) &&
+                    query.TryGetProperty("pages", out var pages))
+                {
+                    foreach (var page in pages.EnumerateObject())
+                    {
+                        if (page.Value.TryGetProperty("extract", out var extract))
+                        {
+                            articleText = extract.GetString() ?? "";
+                            _currentArticleTitle = selectedResult.Title;
+                            break;
+                        }
+                    }
+                }
+
+                if (string.IsNullOrWhiteSpace(articleText))
+                {
+                    ArticleContentTextBlock.Text = "Failed to retrieve article content.";
+                    TokenizedTextBlock.Text = "No content to tokenize.";
+                    return;
+                }
+
+                // Display article content
+                ArticleContentTextBlock.Text = $"Title: {_currentArticleTitle}\n\n{articleText}";
+
+                // Tokenize the article
+                var tokens = TokenizeText(articleText);
+                TokenizedTextBlock.Text = $"Total tokens: {tokens.Count}\n\n" +
+                    $"Tokens (first 500):\n{string.Join(" | ", tokens.Take(500))}";
+            }
+            catch (Exception ex)
+            {
+                ArticleContentTextBlock.Text = $"Error downloading article: {ex.Message}";
+                TokenizedTextBlock.Text = "Tokenization failed.";
+                MessageBox.Show($"Failed to download article: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                DownloadButton.IsEnabled = true;
+                DownloadButton.Content = "Download Selected Article";
+            }
+        }
+
+        private List<string> TokenizeText(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return new List<string>();
+
+            // Remove HTML entities and clean text
+            text = Regex.Replace(text, @"&[a-zA-Z]+;", " ");
+            text = Regex.Replace(text, @"\s+", " ");
+            
+            // Basic tokenization: split by whitespace and punctuation
+            // This is a simple tokenizer - in production, you'd use a proper NLP library
+            var tokens = new List<string>();
+            
+            // Split by common delimiters while preserving some punctuation
+            var words = Regex.Split(text, @"(\s+|[,;:!?\.\-\(\)\[\]""'`])")
+                .Where(w => !string.IsNullOrWhiteSpace(w))
+                .Select(w => w.Trim())
+                .Where(w => w.Length > 0);
+
+            foreach (var word in words)
+            {
+                // Further split compound words if needed
+                if (word.Length > 1 && char.IsLetterOrDigit(word[0]))
+                {
+                    tokens.Add(word.ToLowerInvariant());
+                }
+            }
+
+            return tokens;
+        }
+    }
+
+    // Helper class for Wikipedia search results
+    public class WikipediaSearchResult
+    {
+        public string Title { get; set; } = "";
+        public string Snippet { get; set; } = "";
+        public int PageId { get; set; }
     }
 }
